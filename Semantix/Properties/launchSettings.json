@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Semantix": {
+      "commandName": "Project",
+      "commandLineArgs": "\"D:\\OneDrive - Microsoft\\DevOps\\TQD_Backlog_Comparison.xlsx\" \"TQD\" \"Backlog\""
+    }
+  }
+}
