@@ -57,4 +57,14 @@
             return Regex.Replace(header, @"(\s+|@|&|'|\(|\)|<|>|#|\?|\.|""|\-)", string.Empty);
         }
     }
+
+    public class Row
+    {
+        public string ID_1 { get; set; }
+        public string Title_1 { get; set; }
+        public string ID_2 { get; set; }
+        public string Title_2 { get; set; }
+        public double Similarity { get; set; }
+        public string Algo { get; set; }
+    }
 }
