@@ -32,6 +32,7 @@
   <ItemGroup>
     <PackageReference Include="ColoredConsole" Version="1.0.0" />
     <PackageReference Include="CsvHelper.Excel.Core" Version="22.1.1" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
     <PackageReference Include="SemLib" Version="1.0.0" />
     <PackageReference Include="SimMetrics.Net" Version="1.0.5" />
   </ItemGroup>

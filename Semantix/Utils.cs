@@ -1,6 +1,7 @@
 ﻿namespace Semantix
 {
     using System.Collections.Generic;
+    using System.Data;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -10,8 +11,42 @@
     using CsvHelper.Configuration;
     using CsvHelper.Excel;
 
+    using ExcelDataReader;
+
     public class FileService
     {
+        public DataSet GetRecords(string file)
+        {
+            using (var stream = File.Open(file, FileMode.Open, FileAccess.Read))
+            {
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
+                {
+                    // Choose one of either 1 or 2:
+
+                    // 1. Use the reader methods
+                    do
+                    {
+                        while (reader.Read())
+                        {
+                            // reader.GetDouble(0);
+                        }
+                    } while (reader.NextResult());
+
+                    // 2. Use the AsDataSet extension method
+                    var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                    {
+                        ConfigureDataTable = _ => new ExcelDataTableConfiguration()
+                        {
+                            UseHeaderRow = true
+                        }
+                    });
+
+                    // The result of each spreadsheet is in result.Tables
+                    return result;
+                }
+            }
+        }
+
         public IEnumerable<T> GetRecords<T>(string file, bool isExcel = false, string sheetName = null)
         {
             if (isExcel)

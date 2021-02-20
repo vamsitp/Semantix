@@ -2,60 +2,99 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
+    using System.Text;
 
     using ColoredConsole;
 
     using SemLib;
 
     using SimMetrics.Net.API;
-    using SimMetrics.Net.Metric;
-    using SimMetrics.Net.Utilities;
 
     class Program
     {
+
         private const string Space = " ";
         private static readonly KeywordAnalyzer ka = new KeywordAnalyzer();
         private static readonly FileService fileService = new FileService();
-        private static readonly Dictionary<string, AbstractStringMetric> Algos = new Dictionary<string, AbstractStringMetric>
-        {
-            { nameof(SmithWatermanGotoh), new SmithWatermanGotoh() }, // new SmithWatermanGotoh(new AffineGapRange5To0Multiplier1(), new SubCostRange5ToMinus3());
-            { nameof(Levenstein), new Levenstein() },
-            { nameof(SmithWaterman), new SmithWaterman() },
-            { nameof(MatchingCoefficient), new MatchingCoefficient() },
-            { nameof(OverlapCoefficient), new OverlapCoefficient() },
-        };
+
+        private readonly static string[] Exclusions = new[] { "ChapmanLengthDeviation", "Jaro", "JaroWinkler", "MongeElkan" }; // , "NeedlemanWunch"
+        private static Dictionary<string, IStringMetric> Algos = Assembly
+            .GetExecutingAssembly().GetReferencedAssemblies()
+            .Select(x => Assembly.Load(x)).SelectMany(x => x.GetTypes()
+            .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(IStringMetric)) && !Exclusions.Any(t.Name.Equals)))
+            .ToDictionary(x => x.Name, x => (IStringMetric)Activator.CreateInstance(x));
 
         static void Main(string[] args)
         {
-            var file = args[0];
+            foreach (var algo in Algos)
+            {
+                Console.WriteLine($"{algo.Key} - {algo.Value.ToString()}");
+            }
+
+            var file = string.Empty;
+            Dictionary<string, string> list1;
+            Dictionary<string, string> list2;
+
+            if (args.Length <= 0)
+            {
+                ColorConsole.Write("path-to-excel-file (containing the 2 sheets to compare - with ID & Title columns) <space> max-matches per row: ");
+                file = Console.ReadLine();
+            }
+            else
+            {
+                file = args[0];
+            }
+
             if (File.Exists(file))
             {
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
                 var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison.xlsx";
 
-                var list1 = fileService.GetRecords<dynamic>(file, true, args[1])?.ToList();
-                var list2 = fileService.GetRecords<dynamic>(file, true, args[2])?.ToList();
-                var max = 1;
+                var excelData = fileService.GetRecords(file);
 
-                if (args.Length > 3 && !int.TryParse(args[3], out max))
+                var table1 = excelData.Tables[0];
+                var table2 = excelData.Tables[1];
+
+                if (table1.Columns.Count > 1)
+                {
+                    list1 = table1.Rows.Cast<DataRow>()?.ToDictionary(r => r[0]?.ToString(), r => r[1]?.ToString()); // fileService.GetRecords<dynamic>(file, true, args[1])?.ToList();
+                    list2 = table2.Rows.Cast<DataRow>()?.ToDictionary(r => r[0]?.ToString(), r => r[1]?.ToString()); // fileService.GetRecords<dynamic>(file, true, args[2])?.ToList();
+                }
+                else if (table1.Columns.Count == 1)
+                {
+                    list1 = table1.Rows.Cast<DataRow>()?.Select((r, i) => (r, i)).ToDictionary(row => row.i.ToString(), row => row.r[0]?.ToString()); // fileService.GetRecords<dynamic>(file, true, args[1])?.ToList();
+                    list2 = table2.Rows.Cast<DataRow>()?.Select((r, i) => (r, i)).ToDictionary(row => row.i.ToString(), row => row.r[0]?.ToString()); // fileService.GetRecords<dynamic>(file, true, args[2])?.ToList();
+                }
+                else
+                {
+                    ColorConsole.WriteLine("Input Excel file should have 2 sheets to compare with ID & Title columns!");
+                    return;
+                }
+
+                var max = 1;
+                if (args.Length > 1 && !int.TryParse(args[1], out max))
                 {
                     max = 1;
                 }
 
                 var titleComparisons = new List<Row>();
                 ColorConsole.WriteLine($"L1: {list1?.Count ?? -1}".White(), " | ", $"L2: {list2?.Count}".Blue(), Environment.NewLine);
-                foreach (var l1 in list1.Select((x, i) => (t1: x, i: i + 1)))
+                for (var i = 0; i < list1.Count; i++)
                 {
-                    var i = l1.i;
-                    var t1 = l1.t1;
+                    var t1 = list1.ElementAt(i);
                     var matches = list2.Select(l2 =>
                     {
-                        var row = new Row { ID_1 = t1.ID, Title_1 = t1.Title, ID_2 = l2.ID, Title_2 = l2.Title };
+                        var row = new Row { ID_1 = t1.Key, Title_1 = t1.Value, ID_2 = l2.Key, Title_2 = l2.Value };
                         SetSimilarity(row);
                         return row;
                     }).OrderByDescending(l => l.Similarity).Take(max);
+
                     foreach (var match in matches)
                     {
                         titleComparisons.Add(match);
