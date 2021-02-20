@@ -78,6 +78,11 @@
 
         public void WriteRecords<T>(IEnumerable<T> records, string outputPath)
         {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+
             using (var excelWriter = new ExcelWriter(outputPath, CultureInfo.InvariantCulture))
             {
                 excelWriter.WriteRecords(records);
