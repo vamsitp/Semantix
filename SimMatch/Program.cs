@@ -1,4 +1,4 @@
-﻿namespace Semantix
+﻿namespace SimMatch
 {
     using System;
     using System.Collections.Generic;

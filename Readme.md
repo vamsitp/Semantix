@@ -1,13 +1,13 @@
-# semantix
+# simMatch
 dotnet tool to find similarities b/w 2 sets of _Titles_
 
-![Screenshot](https://github.com/vamsitp/Semantix/blob/master/Screenshot.png?raw=true)
+![Screenshot](https://github.com/vamsitp/SimMatch/blob/master/Screenshot.png?raw=true)
 
 output:
-![Output_Screenshot](https://github.com/vamsitp/Semantix/blob/master/Output_Screenshot.png?raw=true)
+![Output_Screenshot](https://github.com/vamsitp/SimMatch/blob/master/Output_Screenshot.png?raw=true)
 
 **installation** (_pre-req_: [`dotnet 5`](https://dotnet.microsoft.com/download/dotnet/5.0))
-> `dotnet tool install -g --ignore-failed-sources Semantix`   
+> `dotnet tool install -g --ignore-failed-sources SimMatch`   
 
 **usage**
 > `match` [space] `"path-to-excel-file"` [space] `similarity threshold (b/w 0.0 - 1.0)` [space] `max top similarities`   

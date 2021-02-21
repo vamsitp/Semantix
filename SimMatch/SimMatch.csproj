@@ -12,15 +12,15 @@
     <PackageOutputPath>./bin</PackageOutputPath>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Vamsi TP</Authors>
-    <Title>Semantix</Title>
+    <Title>SimMatch</Title>
     <PackageDescription>dotnet tool to find similarities b/w 2 sets of titles (Excel sheets)</PackageDescription>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/vamsitp/Semantix</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/vamsitp/Semantix</RepositoryUrl>
-    <PackageTags>Semantic;Distance;Compare;Text;</PackageTags>
+    <PackageProjectUrl>https://github.com/vamsitp/SimMatch</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/vamsitp/SimMatch</RepositoryUrl>
+    <PackageTags>Similarity;Match;Semantic;Distance;Compare;Text;</PackageTags>
     <Company>Microsoft</Company>
     <Version>1.0.1</Version>
-    <StartupObject>Semantix.Program</StartupObject>
+    <StartupObject>SimMatch.Program</StartupObject>
     <Deterministic>false</Deterministic>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>

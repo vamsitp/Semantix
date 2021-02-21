@@ -1,4 +1,4 @@
-﻿namespace Semantix
+﻿namespace SimMatch
 {
     using System.Collections.Generic;
     using System.Data;
@@ -90,7 +90,7 @@
         }
     }
 
-    public static class SemantixExtensions
+    public static class SimMatchExtensions
     {
         public static string SanitizeHeader(this string header)
         {

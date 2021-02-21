@@ -338,4 +338,4 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
-/Semantix/Properties/launchSettings.json
+/SimMatch/Properties/launchSettings.json
