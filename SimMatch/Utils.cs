@@ -15,6 +15,8 @@
 
     using ExcelDataReader;
 
+    using StopWord;
+
     public class FileService
     {
         public DataSet GetRecords(string file)
@@ -95,12 +97,14 @@
     public static class SimMatchExtensions
     {
         private static readonly EnglishStemmer Stemmer = new EnglishStemmer();
+        private static readonly List<string> StopWordsList = StopWords.GetStopWords("en").ToList();
 
         public static string SanitizeHeader(this string header)
         {
             return Regex.Replace(header, @"(\s+|@|&|'|\(|\)|<|>|#|\?|\.|""|\-)", string.Empty);
         }
 
+        // Credit: https://github.com/nikdon/SimilarityMeasure
         public static string SanitizeTitle(this string title)
         {
             // Strip all HTML
@@ -118,11 +122,18 @@
             // Strip dollar sign
             title = Regex.Replace(title, "[$]+", "dollar");
 
-            // Tokenize and also get rid of any punctuation
-            var phrases = title.Split(" @$/#.-:&*+=[]?!(){},''\">_<;%\\".ToCharArray()).Select(t => Stemmer.GetSteamWord(Regex.Replace(t, "[^a-zA-Z0-9]", string.Empty))).Where(x => !string.IsNullOrWhiteSpace(x));
+            // Tokenize, get rid of any punctuation and get
+            var phrases = title.Split(" @$/#.-:&*+=[]?!(){},''\">_<;%\\".ToCharArray()).Select(Sanitize).Where(x => !string.IsNullOrWhiteSpace(x));
 
             // Join and return
             return string.Join(" ", phrases).Trim();
+        }
+
+        private static string Sanitize(string t)
+        {
+            var sanitized = Regex.Replace(t, "[^a-zA-Z0-9]", string.Empty);
+            var result = StopWordsList.Contains(sanitized) ? null : Stemmer.GetSteamWord(sanitized);
+            return result;
         }
     }
 

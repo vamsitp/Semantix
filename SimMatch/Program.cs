@@ -2,39 +2,32 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Data;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Text;
-    using System.Text.RegularExpressions;
 
     using ColoredConsole;
-
-    using DocumentFormat.OpenXml.Validation;
 
     // using SemLib;
 
     using SimMetrics.Net.API;
-    using SimMetrics.Net.Utilities;
-
-    using StopWord;
 
     class Program
     {
-
-        private const string Space = " ";
         private const double DefaultMinThreshold = 0.5;
         private const int DefaultMaxSimilarities = 1;
-        // private static readonly KeywordAnalyzer ka = new KeywordAnalyzer();
-        private static readonly FileService fileService = new FileService();
-        // private static readonly SimMatchTokeniser Tokeniser = new SimMatchTokeniser();
-        private static readonly List<string> StopWordsList = StopWords.GetStopWords("en").ToList();
 
+        // private const string Space = " ";
+        // private static readonly KeywordAnalyzer ka = new KeywordAnalyzer();
+        // private static readonly SimMatchTokeniser Tokeniser = new SimMatchTokeniser();
+
+        private static readonly FileService fileService = new FileService();
+        private static readonly List<Process> OutputProcs = new List<Process>();
         private readonly static List<string> Exclusions = new List<string>(); // { "ChapmanLengthDeviation", "Jaro", "JaroWinkler", "MongeElkan" }; // , "NeedlemanWunch"
-        private static Dictionary<string, IStringMetric> Algos = Assembly
+        private static readonly Dictionary<string, IStringMetric> Algos = Assembly
             .GetExecutingAssembly().GetReferencedAssemblies()
             .Select(x => Assembly.Load(x)).SelectMany(x => x.GetTypes()
             .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(IStringMetric)))) // && !Exclusions.Any(t.Name.Equals)
@@ -54,7 +47,6 @@
                     return instance;
              //   }
             });
-        private static List<Process> outputProcs = new List<Process>();
 
         static void Main(string[] input)
         {
@@ -174,17 +166,17 @@
             }
 
             var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison_{string.Join("_", filtered.Select(x => x.Index)).Trim('_')}.xlsx";
-            var outputProc = outputProcs.SingleOrDefault(o => o?.StartInfo?.FileName?.Contains(output) == true);
+            var outputProc = OutputProcs.SingleOrDefault(o => o?.StartInfo?.FileName?.Contains(output) == true);
             if (outputProc != null)
             {
                 outputProc.Kill(); // outputProc?.Close();
                 outputProc.WaitForExit();
-                outputProcs.Remove(outputProc);
+                OutputProcs.Remove(outputProc);
             }
 
             fileService.WriteRecords(titleComparisons, output);
             ColorConsole.WriteLine(" --------------------------------------------------");
-            outputProcs.Add(System.Diagnostics.Process.Start(new ProcessStartInfo(output) { UseShellExecute = true }));
+            OutputProcs.Add(System.Diagnostics.Process.Start(new ProcessStartInfo(output) { UseShellExecute = true }));
         }
 
         private static void SetSimilarity(Row row, KeyValuePair<string, IStringMetric> algo)
@@ -199,116 +191,5 @@
             row.Similarity = similarity;
             row.Algo = algo.Key;
         }
-    }
-
-    public sealed class SimMatchTokeniser : ITokeniser
-    {
-        private readonly TokeniserUtilities<string> tokenUtilities = new TokeniserUtilities<string>();
-
-        // Credit: https://github.com/nikdon/SimilarityMeasure
-        public Collection<string> Tokenize(string word)
-        {
-            var wordCountList = new Dictionary<string, int>();
-            var collection = new Collection<string>();
-            var sanitized = Sanitize(word);
-            foreach (string part in sanitized)
-            {
-                // Strip non-alphanumeric characters
-                string stripped = Regex.Replace(part, "[^a-zA-Z0-9]", "");
-                if (!StopWordHandler.IsWord(stripped.ToLower()))
-                {
-                    try
-                    {
-                        var stem = new Annytab.Stemmer.EnglishStemmer().GetSteamWord(stripped);
-                        if (stem.Length > 0)
-                        {
-                            // Build the word count list
-                            if (wordCountList.ContainsKey(stem))
-                            {
-                                wordCountList[stem]++;
-                            }
-                            else
-                            {
-                                wordCountList.Add(stem, 0);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Tokenizer exception source: {0}", e.Message);
-                    }
-                }
-            }
-
-            var vocabList = wordCountList.Where(w => w.Value >= 0); // threshold
-            foreach (var item in vocabList)
-            {
-                collection.Add(item.Key);
-            }
-
-            return collection;
-        }
-
-        private static string[] Sanitize(string text)
-        {
-            // Strip all HTML
-            text = Regex.Replace(text, "<[^<>]+>", "");
-
-            // Strip numbers
-            text = Regex.Replace(text, "[0-9]+", "number");
-
-            // Strip urls
-            text = Regex.Replace(text, @"(http|https)://[^\s]*", "httpaddr");
-
-            // Strip email addresses
-            text = Regex.Replace(text, @"[^\s]+@[^\s]+", "emailaddr");
-
-            // Strip dollar sign
-            text = Regex.Replace(text, "[$]+", "dollar");
-
-            // Tokenize and also get rid of any punctuation
-            return text.Split(" @$/#.-:&*+=[]?!(){},''\">_<;%\\".ToCharArray());
-        }
-
-        public Collection<string> TokenizeToSet(string word)
-        {
-            if (word != null)
-            {
-                return tokenUtilities.CreateSet(Tokenize(word));
-            }
-            return null;
-        }
-
-        public string Delimiters { get; } = "\r\n\t \x00a0";
-
-        public string ShortDescriptionString => "SimMatchTokeniser";
-
-        public ITermHandler StopWordHandler { get; set; } = new SimMatchStopTermHandler();
-    }
-
-    public sealed class SimMatchStopTermHandler : ITermHandler
-    {
-        private static readonly List<string> StopWordsList = StopWords.GetStopWords("en").ToList();
-
-        public void AddWord(string termToAdd)
-        {
-            StopWordsList.Add(termToAdd);
-        }
-
-        public bool IsWord(string termToTest)
-        {
-            return StopWordsList.Contains(termToTest.ToLower());
-        }
-
-        public void RemoveWord(string termToRemove)
-        {
-            StopWordsList.Remove(termToRemove);
-        }
-
-        public int NumberOfWords => 0;
-
-        public string ShortDescriptionString => "SimMatchStopTermHandler";
-
-        public StringBuilder WordsAsBuffer => new StringBuilder();
     }
 }

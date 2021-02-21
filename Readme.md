@@ -1,5 +1,5 @@
 # simMatch
-dotnet tool to find similarities b/w 2 sets of _Titles_
+dotnet tool to find similarities/matches between 2 sets of _Titles_ / _Phrases_ using the chosen _algorithms_ (with _StopWords_ and _Stemming_)
 
 ![Screenshot](https://github.com/vamsitp/SimMatch/blob/master/Screenshot.png?raw=true)
 
@@ -11,9 +11,10 @@ output:
 
 **usage**
 > `match` [space] `"path-to-excel-file"` [space] `min similarity threshold (b/w 0.0 - 1.0)` [space] `max top similarities`   
-> **e.g.** `match` `"D:\List1_List2.xlsx"` `0.4` `1`   
+> **e.g.** `match` `"D:\List1_List2.xlsx"` `0.25` `2`   
 > **note**: Input Excel must contain 2 sheets with 2 columns (named `ID` & `Title`) or at least 1 column (named `Title`) 
 
 **credits**
-- [Tyler Jensen - Keyword extraction in C# with Word-co-occurrence algorithm](https://www.tsjensen.com/blog/post/2010/03/14/Keyword+Extraction+In+C+With+Word+Cooccurrence+Algorithm)
 - [SimMetrics.NET](https://github.com/StefH/SimMetrics.Net/#simmetricsnet)
+- [Annytab.Stemmer](https://github.com/annytab/a-stemmer)
+- [dotnet-stop-words](https://github.com/hklemp/dotnet-stop-words)
