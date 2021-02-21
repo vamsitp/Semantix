@@ -7,6 +7,8 @@
     using System.Linq;
     using System.Text.RegularExpressions;
 
+    using Annytab.Stemmer;
+
     using CsvHelper;
     using CsvHelper.Configuration;
     using CsvHelper.Excel;
@@ -92,9 +94,35 @@
 
     public static class SimMatchExtensions
     {
+        private static readonly EnglishStemmer Stemmer = new EnglishStemmer();
+
         public static string SanitizeHeader(this string header)
         {
             return Regex.Replace(header, @"(\s+|@|&|'|\(|\)|<|>|#|\?|\.|""|\-)", string.Empty);
+        }
+
+        public static string SanitizeTitle(this string title)
+        {
+            // Strip all HTML
+            title = Regex.Replace(title, "<[^<>]+>", "");
+
+            // Strip numbers
+            title = Regex.Replace(title, "[0-9]+", "number");
+
+            // Strip urls
+            title = Regex.Replace(title, @"(http|https)://[^\s]*", "httpaddr");
+
+            // Strip email addresses
+            title = Regex.Replace(title, @"[^\s]+@[^\s]+", "emailaddr");
+
+            // Strip dollar sign
+            title = Regex.Replace(title, "[$]+", "dollar");
+
+            // Tokenize and also get rid of any punctuation
+            var phrases = title.Split(" @$/#.-:&*+=[]?!(){},''\">_<;%\\".ToCharArray()).Select(t => Stemmer.GetSteamWord(Regex.Replace(t, "[^a-zA-Z0-9]", string.Empty))).Where(x => !string.IsNullOrWhiteSpace(x));
+
+            // Join and return
+            return string.Join(" ", phrases).Trim();
         }
     }
 

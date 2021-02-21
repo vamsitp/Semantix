@@ -13,6 +13,8 @@
 
     using ColoredConsole;
 
+    using DocumentFormat.OpenXml.Validation;
+
     // using SemLib;
 
     using SimMetrics.Net.API;
@@ -28,7 +30,8 @@
         private const int DefaultMaxSimilarities = 1;
         // private static readonly KeywordAnalyzer ka = new KeywordAnalyzer();
         private static readonly FileService fileService = new FileService();
-        private static readonly SimMatchTokeniser Tokeniser = new SimMatchTokeniser();
+        // private static readonly SimMatchTokeniser Tokeniser = new SimMatchTokeniser();
+        private static readonly List<string> StopWordsList = StopWords.GetStopWords("en").ToList();
 
         private readonly static List<string> Exclusions = new List<string>(); // { "ChapmanLengthDeviation", "Jaro", "JaroWinkler", "MongeElkan" }; // , "NeedlemanWunch"
         private static Dictionary<string, IStringMetric> Algos = Assembly
@@ -37,19 +40,19 @@
             .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(IStringMetric)))) // && !Exclusions.Any(t.Name.Equals)
             .ToDictionary(x => x.Name, x =>
             {
-                try
-	            {
-                    var instance = (IStringMetric)Activator.CreateInstance(x, Tokeniser);
-                    // ColorConsole.WriteLine($"{x.Name} created with Tokeniser");
-                    return instance;
-                }
-	            catch
-	            {
+             //   try
+	         //   {
+             //       var instance = (IStringMetric)Activator.CreateInstance(x, Tokeniser);
+             //       // ColorConsole.WriteLine($"{x.Name} created with Tokeniser");
+             //       return instance;
+             //   }
+	         //   catch
+	         //   {
                     var instance = (IStringMetric)Activator.CreateInstance(x);
-                    Exclusions.Add(x.Name);
+                    // Exclusions.Add(x.Name);
                     // ColorConsole.WriteLine($"{x.Name} created without Tokeniser".DarkYellow());
                     return instance;
-                }
+             //   }
             });
         private static List<Process> outputProcs = new List<Process>();
 
@@ -191,7 +194,8 @@
 
             //// ColorConsole.WriteLine(t1a.DarkGray(), " | ", t2a.DarkGray());
             //var similarity = algo.Value.GetSimilarity(t1a, t2a);
-            var similarity = algo.Value.GetSimilarity(row.Title_1, row.Title_2);
+
+            var similarity = algo.Value.GetSimilarity(row.Title_1.SanitizeTitle(), row.Title_2.SanitizeTitle());
             row.Similarity = similarity;
             row.Algo = algo.Key;
         }
