@@ -19,7 +19,7 @@
     <RepositoryUrl>https://github.com/vamsitp/SimMatch</RepositoryUrl>
     <PackageTags>Similarity;Match;Semantic;Distance;Compare;Text;</PackageTags>
     <Company>Microsoft</Company>
-    <Version>1.0.1</Version>
+    <Version>1.0.3</Version>
     <StartupObject>SimMatch.Program</StartupObject>
     <Deterministic>false</Deterministic>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

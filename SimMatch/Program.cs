@@ -19,6 +19,8 @@
     {
 
         private const string Space = " ";
+        private const double DefaultMinThreshold = 0.5;
+        private const int DefaultMaxSimilarities = 1;
         private static readonly KeywordAnalyzer ka = new KeywordAnalyzer();
         private static readonly FileService fileService = new FileService();
 
@@ -30,24 +32,26 @@
             .ToDictionary(x => x.Name, x => (IStringMetric)Activator.CreateInstance(x));
         private static List<Process> outputProcs = new List<Process>();
 
-        static void Main(string[] args)
+        static void Main(string[] input)
         {
             try
             {
+                var args = input?.ToList();
                 var file = string.Empty;
                 Dictionary<string, string> list1;
                 Dictionary<string, string> list2;
 
-                if (args.Length <= 0)
+                if (args.Count <= 0)
                 {
-                    ColorConsole.Write("path-to-excel-file (containing the 2 sheets to compare - with ID & Title columns) <space> max-threshold (b/w 0.0 - 1.0) <space> max-matches per row: ");
-                    file = Console.ReadLine();
-                }
-                else
-                {
-                    file = args[0];
+                    ColorConsole.Write("path-to-excel-file (containing the 2 sheets to compare - with ID & Title columns): ".Cyan());
+                    args.Add(Console.ReadLine().Trim(new[] { ' ', '"' }));
+                    ColorConsole.Write("min-threshold b/w 0.0 - 1.0 (default is 0.5): ".Cyan());
+                    args.Add(Console.ReadLine().Trim(new[] { ' ', '"' }));
+                    ColorConsole.Write("max-similarity-matches in the 2nd list per each row in the 1st list (default is 1): ".Cyan());
+                    args.Add(Console.ReadLine()?.Trim(new[] { ' ', '"' }));
                 }
 
+                file = args[0];
                 if (File.Exists(file))
                 {
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -72,16 +76,16 @@
                         return;
                     }
 
-                    var threshold = 0.5;
-                    if (args.Length > 1 && !double.TryParse(args[1], out threshold))
+                    var threshold = DefaultMinThreshold;
+                    if (args.Count > 1 && !double.TryParse(args[1], out threshold))
                     {
-                        threshold = 0.5;
+                        threshold = DefaultMinThreshold;
                     }
 
-                    var max = 1;
-                    if (args.Length > 2 && !int.TryParse(args[2], out max))
+                    var max = DefaultMaxSimilarities;
+                    if (args.Count > 2 && !int.TryParse(args[2], out max))
                     {
-                        max = 1;
+                        max = DefaultMaxSimilarities;
                     }
 
                     var allAlgos = Algos.Select((x, i) => (Algo: x, Index: i + 1));
@@ -106,6 +110,7 @@
 
         private static void Process(Dictionary<string, string> list1, Dictionary<string, string> list2, IEnumerable<(KeyValuePair<string, IStringMetric> Algo, int Index)> allAlgos, string file, double threshold, int max)
         {
+            ColorConsole.WriteLine();
             foreach (var item in allAlgos)
             {
                 ColorConsole.WriteLine($"{item.Index}. ".PadLeft(5).Cyan(), item.Algo.Key.Color(Exclusions.Any(item.Algo.Key.Equals) ? ConsoleColor.DarkGray : ConsoleColor.White));
