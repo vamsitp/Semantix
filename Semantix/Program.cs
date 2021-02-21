@@ -28,7 +28,7 @@
             .Select(x => Assembly.Load(x)).SelectMany(x => x.GetTypes()
             .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(IStringMetric)))) // && !Exclusions.Any(t.Name.Equals)
             .ToDictionary(x => x.Name, x => (IStringMetric)Activator.CreateInstance(x));
-        private static Process outputProc;
+        private static List<Process> outputProcs = new List<Process>();
 
         static void Main(string[] args)
         {
@@ -52,10 +52,7 @@
                 {
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-                    var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison.xlsx";
-
                     var excelData = fileService.GetRecords(file);
-
                     var table1 = excelData.Tables[0];
                     var table2 = excelData.Tables[1];
 
@@ -92,7 +89,7 @@
                     {
                         try
                         {
-                            Process(list1, list2, allAlgos, output, threshold, max);
+                            Process(list1, list2, allAlgos, file, threshold, max);
                         }
                         catch (Exception ex)
                         {
@@ -107,7 +104,7 @@
             }
         }
 
-        private static void Process(Dictionary<string, string> list1, Dictionary<string, string> list2, IEnumerable<(KeyValuePair<string, IStringMetric> Algo, int Index)>  allAlgos, string output, double threshold, int max)
+        private static void Process(Dictionary<string, string> list1, Dictionary<string, string> list2, IEnumerable<(KeyValuePair<string, IStringMetric> Algo, int Index)> allAlgos, string file, double threshold, int max)
         {
             foreach (var item in allAlgos)
             {
@@ -117,10 +114,11 @@
             ColorConsole.WriteLine("\n Enter the index of the Algos to run (space or comma separated)".Cyan());
             ColorConsole.Write(" > ".Cyan());
             var inputs = Console.ReadLine()?.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)?.Select(x => x.Trim());
-            var algos = (inputs?.Count() > 0 ? allAlgos.Where(x => inputs.Any(x.Index.ToString().Equals)) : allAlgos.Where(x => !Exclusions.Any(x.Algo.Key.Equals))).Select(x => x.Algo);
+            var filtered = (inputs?.Count() > 0 ? allAlgos.Where(x => inputs.Any(x.Index.ToString().Equals)) : allAlgos.Where(x => !Exclusions.Any(x.Algo.Key.Equals)));
+            var algos = filtered.Select(x => x.Algo);
 
             var titleComparisons = new List<Row>();
-            ColorConsole.WriteLine($"L1: {list1?.Count ?? -1}".White(), " | ", $"L2: {list2?.Count}".Blue(), Environment.NewLine);
+            ColorConsole.WriteLine($"\n L1: {list1?.Count ?? -1}".White(), " | ", $"L2: {list2?.Count}".Blue(), Environment.NewLine, " --------------------------------------------------".Cyan());
             for (var i = 0; i < list1.Count; i++)
             {
                 var t1 = list1.ElementAt(i);
@@ -139,19 +137,25 @@
                 foreach (var match in matches)
                 {
                     titleComparisons.Add(match);
-                    ColorConsole.WriteLine(string.Empty.PadLeft(5), $"{i}. L1: {match.ID_1} - {match.Title_1}".White());
-                    ColorConsole.WriteLine(string.Empty.PadLeft(5), $"{i}. L2: {match.ID_2} - {match.Title_2}".Blue());
-                    ColorConsole.WriteLine(string.Empty.PadLeft(5), $"{i}. SM: {match.Similarity} ({match.Algo})".Color(match.Similarity >= threshold ? ConsoleColor.Green : ConsoleColor.Red));
+                    ColorConsole.WriteLine($" {i}. L1: {match.ID_1} - {match.Title_1}".White());
+                    ColorConsole.WriteLine($" {i}. L2: {match.ID_2} - {match.Title_2}".Blue());
+                    ColorConsole.WriteLine($" {i}. SM: {match.Similarity} ({match.Algo})".Color(match.Similarity >= threshold ? ConsoleColor.Green : ConsoleColor.Red));
                     ColorConsole.WriteLine();
                 }
             }
 
-            // outputProc?.Close();
-            outputProc?.Kill();
-            outputProc?.WaitForExit();
+            var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison_{string.Join("_", filtered.Select(x => x.Index)).Trim('_')}.xlsx";
+            var outputProc = outputProcs.SingleOrDefault(o => o?.StartInfo?.FileName?.Contains(output) == true);
+            if (outputProc != null)
+            {
+                outputProc.Kill(); // outputProc?.Close();
+                outputProc.WaitForExit();
+                outputProcs.Remove(outputProc);
+            }
+
             fileService.WriteRecords(titleComparisons, output);
             ColorConsole.WriteLine(" --------------------------------------------------");
-            outputProc = System.Diagnostics.Process.Start(new ProcessStartInfo(output) { UseShellExecute = true });
+            outputProcs.Add(System.Diagnostics.Process.Start(new ProcessStartInfo(output) { UseShellExecute = true }));
         }
 
         private static void SetSimilarity(Row row, KeyValuePair<string, IStringMetric> algo)
