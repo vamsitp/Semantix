@@ -117,6 +117,10 @@
                         }
                     }
                 }
+                else
+                {
+                    ColorConsole.WriteLine($"Invalid file: {file}".Red());
+                }
             }
             catch (Exception ex)
             {
@@ -127,6 +131,7 @@
         private static void Process(Dictionary<string, string> list1, Dictionary<string, string> list2, IEnumerable<(KeyValuePair<string, IStringMetric> Algo, int Index)> allAlgos, string file, double threshold, int max)
         {
             ColorConsole.WriteLine();
+            ColorConsole.WriteLine($"0. ".PadLeft(5).DarkCyan(), "G_Diff_Match_Patch".DarkGray());
             foreach (var item in allAlgos)
             {
                 ColorConsole.WriteLine($"{item.Index}. ".PadLeft(5).Cyan(), item.Algo.Key.Color(Exclusions.Any(item.Algo.Key.Equals) ? ConsoleColor.DarkGray : ConsoleColor.White));
@@ -145,14 +150,21 @@
                 var t1 = list1.ElementAt(i);
                 var matches = list2.SelectMany(l2 =>
                 {
-                    var rows = algos.Select(a =>
+                    if (inputs?.Count() > 0 && !inputs.Any(x => x.Equals("0")))
                     {
-                        var row = new Row { ID_1 = t1.Key, Title_1 = t1.Value, ID_2 = l2.Key, Title_2 = l2.Value };
-                        SetSimilarity(row, a);
-                        return row;
-                    }).OrderByDescending(l => l.Similarity);
+                        var rows = algos.Select(a =>
+                        {
+                            var row = new Row { ID_1 = t1.Key, Title_1 = t1.Value, ID_2 = l2.Key, Title_2 = l2.Value };
+                            SetSimilarity(row, a);
+                            return row;
+                        }).OrderByDescending(l => l.Similarity);
 
-                    return rows;
+                        return rows;
+                    }
+                    else
+                    {
+                        return GetDmpMatches(t1, l2);
+                    }
                 }).Where(m => m.Similarity >= threshold).OrderByDescending(l => l.Similarity).Take(max);
 
                 foreach (var match in matches)
@@ -165,7 +177,7 @@
                 }
             }
 
-            var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison_{string.Join("_", filtered.Select(x => x.Index)).Trim('_')}.xlsx";
+            var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison_{string.Join("_", inputs).Trim('_')}.xlsx";
             var outputProc = OutputProcs.SingleOrDefault(o => o?.StartInfo?.FileName?.Contains(output) == true);
             if (outputProc != null)
             {
@@ -190,6 +202,34 @@
             var similarity = algo.Value.GetSimilarity(row.Title_1.SanitizeTitle(), row.Title_2.SanitizeTitle());
             row.Similarity = similarity;
             row.Algo = algo.Key;
+        }
+
+        private static IEnumerable<Row> GetDmpMatches(KeyValuePair<string, string> t1, KeyValuePair<string, string> l2)
+        {
+            var rows = new List<Row>();
+            var match = GetDmpMatch(t1.Value, l2.Value);
+            if (match > 1)
+            {
+                var row = new Row { ID_1 = t1.Key, Title_1 = t1.Value, ID_2 = l2.Key, Title_2 = l2.Value, Similarity = match, Algo = nameof(DiffMatchPatch) };
+                rows.Add(row);
+            }
+
+            return rows.OrderByDescending(l => l.Similarity);
+        }
+
+        // https://github.com/google/diff-match-patch/wiki/Language:-C%23
+        private static int GetDmpMatch(string title1, string title2)
+        {
+            var dmp = new DiffMatchPatch.diff_match_patch();
+            var diff = dmp.diff_main(title1.SanitizeTitle(), title2.SanitizeTitle()); // var diff = dmp.match_main(title2.SanitizeTitle(), title1.SanitizeTitle(), 0);
+            dmp.diff_cleanupSemantic(diff);
+            var equals = diff.Count(x => x.text.Length > 3 && x.operation == DiffMatchPatch.Operation.EQUAL); // 3 variable
+            if (Debugger.IsAttached && equals > 0)
+            {
+                Console.WriteLine(string.Join(Environment.NewLine, diff.Where(x => x.operation == DiffMatchPatch.Operation.EQUAL).Select(d => $" {d.operation} - {d.text}")).Trim());
+            }
+
+            return equals;
         }
     }
 }

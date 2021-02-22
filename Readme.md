@@ -18,3 +18,4 @@ output:
 - [SimMetrics.NET](https://github.com/StefH/SimMetrics.Net/#simmetricsnet)
 - [Annytab.Stemmer](https://github.com/annytab/a-stemmer)
 - [dotnet-stop-words](https://github.com/hklemp/dotnet-stop-words)
+- [diff-match-patch](https://github.com/google/diff-match-patch/)
