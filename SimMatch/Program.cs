@@ -33,19 +33,19 @@
             .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(IStringMetric)))) // && !Exclusions.Any(t.Name.Equals)
             .ToDictionary(x => x.Name, x =>
             {
-             //   try
-	         //   {
-             //       var instance = (IStringMetric)Activator.CreateInstance(x, Tokeniser);
-             //       // ColorConsole.WriteLine($"{x.Name} created with Tokeniser");
-             //       return instance;
-             //   }
-	         //   catch
-	         //   {
-                    var instance = (IStringMetric)Activator.CreateInstance(x);
-                    // Exclusions.Add(x.Name);
-                    // ColorConsole.WriteLine($"{x.Name} created without Tokeniser".DarkYellow());
-                    return instance;
-             //   }
+                 // try
+	             // {
+                 //     var instance = (IStringMetric)Activator.CreateInstance(x, Tokeniser);
+                 //     // ColorConsole.WriteLine($"{x.Name} created with Tokeniser");
+                 //     return instance;
+                 // }
+	             // catch
+	             // {
+                      var instance = (IStringMetric)Activator.CreateInstance(x);
+                      // Exclusions.Add(x.Name);
+                      // ColorConsole.WriteLine($"{x.Name} created without Tokeniser".DarkYellow());
+                      return instance;
+                 // }
             });
 
         static void Main(string[] input)
@@ -119,7 +119,8 @@
                 }
                 else
                 {
-                    ColorConsole.WriteLine($"Invalid file: {file}".Red());
+                    ColorConsole.WriteLine($"File not found: {file}".Red());
+                    return;
                 }
             }
             catch (Exception ex)
@@ -150,7 +151,11 @@
                 var t1 = list1.ElementAt(i);
                 var matches = list2.SelectMany(l2 =>
                 {
-                    if (inputs?.Count() > 0 && !inputs.Any(x => x.Equals("0")))
+                    if (inputs.Any(x => x.Equals("0")))
+                    {
+                        return GetDmpMatches(t1, l2);
+                    }
+                    else
                     {
                         var rows = algos.Select(a =>
                         {
@@ -161,11 +166,7 @@
 
                         return rows;
                     }
-                    else
-                    {
-                        return GetDmpMatches(t1, l2);
-                    }
-                }).Where(m => m.Similarity >= threshold).OrderByDescending(l => l.Similarity).Take(max);
+                }).Where(m => m.Similarity >= threshold).GroupBy(x => x.Algo).SelectMany(g => g.OrderByDescending(row => row.Similarity).Take(max));
 
                 foreach (var match in matches)
                 {
@@ -177,7 +178,7 @@
                 }
             }
 
-            var output = $"{Path.GetFileNameWithoutExtension(file)}_Comparison_{string.Join("_", inputs).Trim('_')}.xlsx";
+            var output = $"{Path.GetFileNameWithoutExtension(file)}_{nameof(SimMatch)}_{string.Join("_", inputs).Trim('_')}.xlsx";
             var outputProc = OutputProcs.SingleOrDefault(o => o?.StartInfo?.FileName?.Contains(output) == true);
             if (outputProc != null)
             {
