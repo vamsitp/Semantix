@@ -1,6 +1,8 @@
 ﻿namespace SimMatch
 {
+    using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Data;
     using System.Globalization;
     using System.IO;
@@ -8,6 +10,8 @@
     using System.Text.RegularExpressions;
 
     using Annytab.Stemmer;
+
+    using ClosedXML.Excel;
 
     using CsvHelper;
     using CsvHelper.Configuration;
@@ -80,17 +84,45 @@
             }
         }
 
-        public void WriteRecords<T>(IEnumerable<T> records, string outputPath)
+        public void WriteRecords(IEnumerable<Row> records, string outputPath)
         {
             if (File.Exists(outputPath))
             {
                 File.Delete(outputPath);
             }
 
-            using (var excelWriter = new ExcelWriter(outputPath, CultureInfo.InvariantCulture))
+            GenerateExcel(records, outputPath);
+            //using (var excelWriter = new ExcelWriter(outputPath, CultureInfo.InvariantCulture))
+            //{
+            //    excelWriter.WriteRecords(records);
+            //}
+        }
+
+        private static void GenerateExcel(IEnumerable<Row> records, string outputPath)
+        {
+            var wb = new XLWorkbook { ReferenceStyle = XLReferenceStyle.Default, CalculateMode = XLCalculateMode.Auto };
+            var ws = wb.Worksheets.Add("SimMatch");
+            ws.Style.Font.FontName = "Segoe UI";
+            ws.Style.Font.FontSize = 10.00;
+
+            var table = ws.Cell(1, 1).InsertTable(records.ToDataTable(), "SimMatch");
+            ws.Row(1).Style.Font.Bold = true;
+
+            var titleGroups = records.GroupBy(x => x.Title_1);
+            foreach (var group in titleGroups)
             {
-                excelWriter.WriteRecords(records);
+                var maxCountTitle2 = group.GroupBy(s => s.Title_2).OrderByDescending(s => s.Count()).First().Key;
+                var title1Rows = table.Rows().Where(r => r.Cell(2).Value.Equals(group.Key) && r.Cell(4).Value.Equals(maxCountTitle2));
+                foreach (var row in title1Rows)
+                {
+                    row.Style.Font.Bold = true;
+                }
             }
+
+            table.Theme = XLTableTheme.TableStyleLight13;
+            // ws.Columns().AdjustToContents();
+
+            wb.SaveAs(outputPath);
         }
     }
 
@@ -134,6 +166,30 @@
             var sanitized = Regex.Replace(t, "[^a-zA-Z0-9]", string.Empty);
             var result = StopWordsList.Contains(sanitized) ? null : Stemmer.GetSteamWord(sanitized);
             return result;
+        }
+
+        // Credit: https://stackoverflow.com/questions/18100783/how-to-convert-a-list-into-data-table
+        public static DataTable ToDataTable<T>(this IEnumerable<T> records)
+        {
+            var properties = TypeDescriptor.GetProperties(typeof(T));
+            var table = new DataTable();
+            foreach (PropertyDescriptor prop in properties)
+            {
+                table.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+            }
+
+            foreach (T item in records)
+            {
+                var row = table.NewRow();
+                foreach (PropertyDescriptor prop in properties)
+                {
+                    row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+                }
+
+                table.Rows.Add(row);
+            }
+
+            return table;
         }
     }
 

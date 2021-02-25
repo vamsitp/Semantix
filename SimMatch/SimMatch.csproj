@@ -19,7 +19,7 @@
     <RepositoryUrl>https://github.com/vamsitp/SimMatch</RepositoryUrl>
     <PackageTags>Similarity;Match;Semantic;Distance;Compare;Text;</PackageTags>
     <Company>Microsoft</Company>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <StartupObject>SimMatch.Program</StartupObject>
     <Deterministic>false</Deterministic>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="Annytab.Stemmer" Version="1.2.4" />
+    <PackageReference Include="ClosedXML" Version="0.95.4" />
     <PackageReference Include="ColoredConsole" Version="1.0.0" />
     <PackageReference Include="CsvHelper.Excel.Core" Version="22.1.1" />
     <PackageReference Include="dotnet-stop-words" Version="1.1.0" />
